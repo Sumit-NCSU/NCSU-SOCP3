@@ -7,7 +7,11 @@ lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
 scalaVersion := "2.12.2"
 
+autoScalaLibrary := true
+
 resolvers += "public-jboss" at "http://repository.jboss.org/nexus/content/groups/public-jbos"
+
+libraryDependencies += "org.scala-lang" % "scala-library" % scalaVersion.value
 
 libraryDependencies ++= Seq(
   "org.drools" % "drools-core" % "7.3.0.Final",

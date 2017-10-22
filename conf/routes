@@ -13,13 +13,20 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 #####################
 
 # Load Input Graph
-POST	/:graph						controllers.HomeController.loadGraph(graph: String)
+POST	/graph						controllers.HomeController.loadGraph()
 
 # Query Actor
 GET		/:actor/query/:value		controllers.HomeController.queryActor(actor: String, value: String)
 
-# Dump Neighbors and Qquaintances
+# Dump Neighbors and Aquaintances
 GET		/:actor/dump_states			controllers.HomeController.dumpStates(actor: String)
 
 # Get Message Log
 GET		/messages					controllers.HomeController.messages
+
+#########
+# Debug #
+#########
+
+# Reset
+GET		/reset						controllers.HomeController.reset

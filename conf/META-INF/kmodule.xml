@@ -1,5 +1,5 @@
 <kmodule xmlns="http://jboss.org/kie/6.0.0/kmodule">
-    <kbase name="kbase1" packages="drools">
-        <ksession name="HelloWorldKS"/>
+    <kbase name="rules" packages="actors">
+        <ksession name="ksession-rules"/>
     </kbase>
 </kmodule>

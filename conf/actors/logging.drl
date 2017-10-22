@@ -1,0 +1,29 @@
+package actors
+
+rule "querySent"
+  when
+  PersonActorProtocol.Query()
+  then
+  play.Logger.info("Drools: Query message sent to Actor.");  
+end
+
+rule "DumpStateSent"
+  when
+  PersonActorProtocol.DumpState()
+  then
+  play.Logger.info("Drools: DumpState message send to Actor.");  
+end
+
+rule "ReferralSent"
+  when
+  PersonActorProtocol.Referral()
+  then
+  play.Logger.info("Drools: Referral message sent to Actor.");
+end
+
+rule "AnswerSent"
+  when
+  PersonActorProtocol.Answer()
+  then
+  play.Logger.info("Drools: Answer message sent to Actor.");
+end
