@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">ReferralsClient</string>
+    <string name="zero">0.0</string>
+    <string name="cooking">Cooking</string>
+    <string name="house">House Repair</string>
+    <string name="education">Education</string>
+    <string name="entertainment">Entertainment</string>
+    <string name="query">Query</string>
+</resources>
