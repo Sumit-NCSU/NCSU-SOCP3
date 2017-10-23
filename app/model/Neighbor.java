@@ -73,4 +73,13 @@ public class Neighbor {
 		return "Neighbors [name=" + name + ", expertise=" + Strings.arrayToString(expertise) + ", sociability="
 				+ Strings.arrayToString(sociability) + "]";
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof Neighbor) {
+			return this.name.equals(((Neighbor) obj).getName());
+		} else {
+			return super.equals(obj);
+		}
+	}
 }

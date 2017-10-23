@@ -1,29 +1,45 @@
 package actors
 
-rule "querySent"
+import utils.Strings;
+
+rule "matchQuery"
   when
   PersonActorProtocol.Query()
   then
-  play.Logger.info("Drools: Query message sent to Actor.");  
+  play.Logger.info("Query message. --Logged from Drools Rule named 'matchQuery'.");
 end
 
-rule "DumpStateSent"
+rule "matchDumpState"
   when
   PersonActorProtocol.DumpState()
   then
-  play.Logger.info("Drools: DumpState message send to Actor.");  
+  play.Logger.info("DumpState message. --Logged from Drools Rule named 'matchDumpState'.");
 end
 
-rule "ReferralSent"
+rule "matchReferral"
   when
   PersonActorProtocol.Referral()
   then
-  play.Logger.info("Drools: Referral message sent to Actor.");
+  play.Logger.info("Referral message. --Logged from Drools Rule named 'matchReferral'.");
 end
 
-rule "AnswerSent"
+rule "matchAnswer"
   when
   PersonActorProtocol.Answer()
   then
-  play.Logger.info("Drools: Answer message sent to Actor.");
+  play.Logger.info("Answer message. --Logged from Drools Rule named 'matchAnswer'.");
+end
+
+rule "matchRefusal"
+  when
+  PersonActorProtocol.Refusal()
+  then
+  play.Logger.info("Refusal message. --Logged from Drools Rule named 'matchRefusal'.");
+end
+
+rule "matchGetNeeds"
+  when
+  PersonActorProtocol.GetNeeds()
+  then
+  play.Logger.info("GetNeeds message. --Logged from Drools Rule named 'matchGetNeeds'.");
 end

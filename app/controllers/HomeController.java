@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,6 +20,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import actors.PersonActor;
+import actors.PersonActorProtocol.Answer;
 import actors.PersonActorProtocol.DumpState;
 import actors.PersonActorProtocol.GetNeeds;
 import actors.PersonActorProtocol.Query;
@@ -76,17 +76,24 @@ public class HomeController extends Controller {
 	 * @return
 	 */
 	public Result loadGraph() {
-		play.Logger.info("Load Graph called");
+		play.Logger.info("Load Graph API called");
 		try {
 			JsonNode json = request().body().asJson();
 
 			play.Logger.info("Input recieved: " + json);
 			if (json != null) {
+				play.Logger.info("Clearing the old Input Graph.");
+				doReset();
+				play.Logger.info("The old Input Graph is cleared.");
 				for (JsonNode item : json) {
 					actorNameMap.put(item.get("name").asText(), processItem(item));
 				}
+				if (!actorNameMap.keySet().contains("default")) {
+					play.Logger.info("default actor not found in input graph!");
+					return ok(createErrorResponse("Error: There is no actor named default in the input Graph!"));
+				}
 			} else {
-				return ok(createErrorResponse("Error Input Graph Json is null! Please Check input."));
+				return ok(createErrorResponse("Error: Input Graph Json is null! Please Check input."));
 			}
 
 			// Do 25 Queries per actor
@@ -110,9 +117,38 @@ public class HomeController extends Controller {
 	 * @return
 	 */
 	public Result queryActor(String actor, String value) {
-		play.Logger.info("Query Actor called for actor: " + actor + ", the query is for: " + value);
-		String result = "";
-		return ok(result);
+		play.Logger.info("Query Actor API called for actor: " + actor + ", the query is for: " + value);
+		ActorRef actorForQuery = actorNameMap.get(actor);
+		String[] tokens = value.split(",");
+		double[] query = new double[4];
+		int i = 0;
+		for (String val : tokens) {
+			query[i++] = Double.valueOf(val);
+		}
+		try {
+			final Timeout timeout = new Timeout(10, TimeUnit.SECONDS);
+			final Future<Object> future = Patterns.ask(actorForQuery, new Query(query), timeout);
+			final Object answer = (Object) Await.result(future, timeout.duration());
+			if (answer != null) {
+				play.Logger.info("Answer Found!");
+				if (answer instanceof Answer) {
+					play.Logger.info("Answer is of type Answer!");
+					Answer ans = (Answer) answer;
+					ObjectNode result = Json.newObject();
+					result.put(Strings.STATUS, Strings.SUCCESS);
+					result.set("answer", play.libs.Json.toJson(ans.answer));
+					return ok(result);
+				} else {
+					play.Logger.info("Answer is of type Refusal!");
+					return ok(createErrorResponse("Refused"));
+				}
+			} else {
+				return ok(createErrorResponse("Could not find a match for query: " + Strings.arrayToString(query)));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ok(createErrorResponse("Error while executing Query: " + Strings.arrayToString(query)));
+		}
 	}
 
 	/**
@@ -123,7 +159,7 @@ public class HomeController extends Controller {
 	 * @return
 	 */
 	public CompletionStage<Result> dumpStates(String actor) {
-		play.Logger.info("Dump States called for actor: " + actor);
+		play.Logger.info("Dump States API called for actor: " + actor);
 		ActorRef actorRef = actorNameMap.get(actor);
 		if (actorRef == null) {
 			return CompletableFuture
@@ -141,7 +177,7 @@ public class HomeController extends Controller {
 	 * @return
 	 */
 	public Result messages() {
-		play.Logger.info("Messages called");
+		play.Logger.info("Messages API called");
 		try {
 			String content = Files.asCharSource(new File("logs/application.log"), Charsets.UTF_8).read();
 			play.Logger.info("Log File read. Returning the logs to the user as a String.");
@@ -158,7 +194,17 @@ public class HomeController extends Controller {
 	 * @return
 	 */
 	public Result reset() {
-		play.Logger.info("Reset Called");
+		play.Logger.info("Reset API Called");
+		return ok(doReset());
+	}
+
+	/**
+	 * This method implements the reset functionality - i.e. it clears the input
+	 * graph and stops all the actor instances.
+	 * 
+	 * @return
+	 */
+	private ObjectNode doReset() {
 		try {
 			PoisonPill killMessage = PoisonPill.getInstance();
 			for (Entry<String, ActorRef> entry : actorNameMap.entrySet()) {
@@ -166,22 +212,20 @@ public class HomeController extends Controller {
 				actor.tell(killMessage, ActorRef.noSender());
 			}
 			actorNameMap.clear();
-			drools.kieSession.insert(killMessage);
-			drools.kieSession.fireAllRules();
 			play.Logger.info("Reset Complete!");
-			return ok(createSuccessResponse(null, null));
+			return createSuccessResponse(null, null);
 		} catch (Exception e) {
-			return ok(createErrorResponse("Error unable to reset the graph."));
+			return createErrorResponse("Error unable to reset the graph.");
 		}
 	}
 
 	/**
-	 * This method processes an item from the Input Graph Json passed to the
+	 * This method processes an item from the Input Graph JSON passed to the
 	 * loadGraph() method.
 	 * 
 	 * @param item
-	 *            the Json item from the JsonArray.
-	 * @return the actorRef of the actor created from the given Json Item
+	 *            the JSON item from the JsonArray.
+	 * @return the actorRef of the actor created from the given JSON Item
 	 */
 	private ActorRef processItem(JsonNode item) {
 		play.Logger.info("Processing Item: " + item);
@@ -207,10 +251,10 @@ public class HomeController extends Controller {
 		List<Neighbor> neighbors = new ArrayList<Neighbor>();
 		JsonNode neighborArray = item.get("neighbors");
 		if (neighborArray != null) {
-			for (JsonNode value : neighborArray) {
-				String neighborName = value.get("name").asText();
+			for (JsonNode neighbor : neighborArray) {
+				String neighborName = neighbor.get("name").asText();
 				double[] neighborExpertise = new double[0];
-				JsonNode neighborExpertiseArray = item.get("expertise");
+				JsonNode neighborExpertiseArray = neighbor.get("expertise");
 				int j = 0;
 				if (neighborExpertiseArray != null) {
 					neighborExpertise = new double[4];
@@ -219,7 +263,7 @@ public class HomeController extends Controller {
 					}
 				}
 				double[] neighborSociability = new double[0];
-				JsonNode neighborSociabilityArray = item.get("sociability");
+				JsonNode neighborSociabilityArray = neighbor.get("sociability");
 				j = 0;
 				if (neighborSociabilityArray != null) {
 					neighborSociability = new double[4];
@@ -241,12 +285,11 @@ public class HomeController extends Controller {
 	 */
 	private void runTestQueries() {
 		play.Logger.info("Running Test queries.");
-		List<double[]> actorsNeeds = new LinkedList<double[]>();
 		for (Map.Entry<String, ActorRef> entry : actorNameMap.entrySet()) {
 			play.Logger.info("Finding needs for: " + entry.getKey());
 			ActorRef actor = entry.getValue();
 			try {
-				final Timeout timeout = new Timeout(2, TimeUnit.SECONDS);
+				final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
 				final Future<Object> future = Patterns.ask(actor, new GetNeeds(), timeout);
 				final double[] need = (double[]) Await.result(future, timeout.duration());
 				sendQuery(entry, need);
@@ -294,9 +337,12 @@ public class HomeController extends Controller {
 	private ObjectNode createSuccessResponse(String key, Object message) {
 		ObjectNode result = Json.newObject();
 		result.put(Strings.STATUS, Strings.SUCCESS);
+		String logMessage = "Creating Success Response";
 		if (key != null && message != null) {
 			result.put(key, (String) message);
+			logMessage = logMessage.concat(": [" + key + ": " + message + "]");
 		}
+		play.Logger.info(logMessage);
 		return result;
 	}
 
@@ -314,6 +360,7 @@ public class HomeController extends Controller {
 	 * @return
 	 */
 	private ObjectNode createErrorResponse(String message) {
+		play.Logger.info("Creating Error Response: " + message);
 		ObjectNode result = Json.newObject();
 		result.put(Strings.STATUS, Strings.ERROR);
 		result.put(Strings.MESSAGE, message);

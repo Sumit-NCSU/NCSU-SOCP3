@@ -1,9 +1,12 @@
 package utils;
 
+import org.slf4j.MDC;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import actors.PersonActor;
 import play.libs.Json;
+import plugin.Drools;
 
 public class Strings {
 
@@ -14,6 +17,9 @@ public class Strings {
 	public static final String ERROR = "error";
 	public static final String MESSAGE = "message";
 	public static final String STATUS = "status";
+	public static final String SEND = "SEND";
+	public static final String RECV = "RECV";
+	public static final String DEFAULT = "default";
 
 	public static ObjectNode getJson(PersonActor person) {
 		try {
@@ -57,6 +63,14 @@ public class Strings {
 			}
 		}
 		return ipSum;
+	}
+
+	public static void doLog(Drools drools, String actorName, String messageType, Object object) {
+		MDC.put("sourceActorSystem", actorName);
+		MDC.put("type", messageType);
+		drools.kieSession.insert(object);
+		drools.kieSession.fireAllRules();
+		MDC.clear();
 	}
 
 }

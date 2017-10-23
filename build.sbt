@@ -22,3 +22,6 @@ libraryDependencies += guice
 
 libraryDependencies += "com.google.code.gson" % "gson" % "2.2.4"
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.4"
+
+
+herokuAppName in Compile := "referral-server-9x"
